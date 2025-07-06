@@ -21,14 +21,9 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     logging: *loki-logging
+    depends_on:
+      - loki
 
   open-webui:
     image: ghcr.io/open-webui/open-webui
@@ -41,8 +36,6 @@ services:
     env_file:
       - "./env/postgres.env"
       - "./env/openwebui.env"
-    environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://prometheus:9090
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -63,13 +56,6 @@ services:
     restart: unless-stopped
     networks:
       - localai-hub
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -90,6 +76,7 @@ services:
     depends_on:
       - redis
       - sysctl-setter
+      - loki
     restart: unless-stopped
     networks:
       - localai-hub
@@ -135,6 +122,8 @@ services:
       timeout: 5s
       retries: 3
     logging: *loki-logging
+    depends_on:
+      - loki
 
   tika:
     image: apache/tika:latest-full
@@ -151,6 +140,8 @@ services:
       retries: 3
       start_period: 30s
     logging: *loki-logging
+    depends_on:
+      - loki
 
   pipelines:
     image: ghcr.io/open-webui/pipelines:main
@@ -169,6 +160,8 @@ services:
       retries: 3
       start_period: 30s
     logging: *loki-logging
+    depends_on:
+      - loki
 
   sysctl-setter:
     image: alpine:latest
@@ -196,6 +189,7 @@ services:
       - DAC_OVERRIDE
     depends_on:
       - sysctl-setter
+      - loki
     healthcheck:
       test: ["CMD-SHELL", "valkey-cli ping | grep -q PONG"]
       start_period: 5s
@@ -222,6 +216,7 @@ services:
       - localai-hub
     depends_on:
       - redis
+      - loki
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9121/metrics"]
       interval: 30s
@@ -263,7 +258,6 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
     devices:
       - /dev/kmsg
     privileged: true
@@ -276,6 +270,8 @@ services:
       timeout: 5s
       retries: 3
     logging: *loki-logging
+    depends_on:
+      - loki
 
   grafana:
     image: grafana/grafana:12.0.2
@@ -292,8 +288,8 @@ services:
     networks:
       - localai-hub
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
+      - loki
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
@@ -324,6 +320,8 @@ services:
       timeout: 5s
       retries: 3
     logging: *loki-logging
+    depends_on:
+      - loki
 
   playwright:
     image: mcr.microsoft.com/playwright:v1.49.1-noble
@@ -333,6 +331,8 @@ services:
     networks:
       - localai-hub
     logging: *loki-logging
+    depends_on:
+      - loki
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -353,6 +353,8 @@ services:
       timeout: 5s
       retries: 3
     logging: *loki-logging
+    depends_on:
+      - loki
 
   postgres:
     image: postgres:16-alpine
@@ -374,6 +376,8 @@ services:
       retries: 5
       start_period: 30s
     logging: *loki-logging
+    depends_on:
+      - loki
 
 volumes:
   ollama:
