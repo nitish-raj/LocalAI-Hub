@@ -65,7 +65,7 @@ services:
 
   searxng:
     image: searxng/searxng:latest
-    container_name: searxng
+    container_name: SearXNG
     ports:
       - "8080:8080"
     volumes:
